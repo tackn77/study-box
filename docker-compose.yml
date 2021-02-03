@@ -1,0 +1,14 @@
+version: '3'
+services:
+  jenkins:
+    container_name: jenkins-rpi
+    build:
+      context: .
+      dockerfile: Dockerfile
+    restart: always
+    env_file: ./common.env
+    ports:
+      - "8080:8080"
+    volumes:
+      - /data/jenkins:/var/jenkins_home
+      - /var/run/docker.sock:/var/run/docker.sock
