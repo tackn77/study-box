@@ -13,7 +13,7 @@ Jenkins Blue Ocean の勉強のためRasbianにJenkinsをDockerで構築しよ�
 1. git clone
 1. docker-compose up --build -d
 1. docker exec -t jenkins-rpi64 sudo /etc/init.d/jenkins start
-1. http://(Raspberry PiのIPアドレス):8080/ へアクセス
+1. <http://(RaspberryPiのIPアドレス):8080/> へアクセス
 1. docker exec -t jenkins-rpi64 cat /var/lib/jenkins/secrets/initialAdminPassword
 1. ウィザードに沿ってセットアップ
 1. Jenkinsの管理 > プラグインの管理 > 利用可能 > Blue Ocean を検索してインストール
@@ -26,7 +26,7 @@ Jenkins Blue Ocean の勉強のためRasbianにJenkinsをDockerで構築しよ�
 ## 現在未完了項目
 
 * /etc/init.d/jenkins start は自動化したい。
-* リバースプロキシするために http://(IP):8080/jenkins で起動させたい。
+* リバースプロキシするために <http://(IP):8080/jenkins> で起動させたい。
 * docker グループの変更の自動化したい。
 * 現在平文なのでHTTPS化したい。
 * Jenkins Blue Oceanを使えるようにしたい。
