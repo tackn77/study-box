@@ -1,7 +1,7 @@
 version: '3'
 services:
   jenkins:
-    container_name: jenkins-rpi
+    container_name: jenkins-rpi64
     build:
       context: .
       dockerfile: Dockerfile

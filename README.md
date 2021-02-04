@@ -1,4 +1,4 @@
-# jenkins-rpi
+# jenkins-rpi64
 
 ## これは何？
 
@@ -12,15 +12,15 @@ Jenkins Blue Ocean の勉強のためRasbianにJenkinsをDockerで構築しよ�
 
 1. git clone
 1. docker-compose up --build -d
-1. docker exec -t jenkins-rpi sudo /etc/init.d/jenkins start
+1. docker exec -t jenkins-rpi64 sudo /etc/init.d/jenkins start
 1. http://(Raspberry PiのIPアドレス):8080/ へアクセス
-1. docker exec -t jenkins-rpi cat /var/lib/jenkins/secrets/initialAdminPassword
+1. docker exec -t jenkins-rpi64 cat /var/lib/jenkins/secrets/initialAdminPassword
 1. ウィザードに沿ってセットアップ
 1. Jenkinsの管理 > プラグインの管理 > 利用可能 > Blue Ocean を検索してインストール
-1. docker exec -t jenkins-rpi sudo /etc/init.d/jenkins restart でjenkins を再起動
-1. docker exec -t jenkins-rpi sudo /usr/sbin/groupmod -g (ホストのdockerのグループID) docker
-1. docker exec -t jenkins-rpi sudo /usr/sbin/usermod -aG (ホストのdockerのグループID) jenkins
-1. docker exec -t jenkins-rpi id jenkins で確認
+1. docker exec -t jenkins-rpi64 sudo /etc/init.d/jenkins restart でjenkins を再起動
+1. docker exec -t jenkins-rpi64 sudo /usr/sbin/groupmod -g (ホストのdockerのグループID) docker
+1. docker exec -t jenkins-rp64i sudo /usr/sbin/usermod -aG (ホストのdockerのグループID) jenkins
+1. docker exec -t jenkins-rpi64 id jenkins で確認
 1. 現在はここまで
 
 ## 現在未完了項目
