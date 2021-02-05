@@ -42,8 +42,7 @@ RUN apt-get update && apt-get install -y jenkins
 # add sudoers
 RUN echo "jenkins ALL=(root) NOPASSWD: /usr/bin/docker" >> /etc/sudoers
 RUN echo "jenkins ALL=(root) NOPASSWD: /etc/init.d/jenkins" >> /etc/sudoers
-RUN echo "jenkins ALL=(root) NOPASSWD: /usr/sbin/groupmod" >> /etc/sudoers
-RUN echo "jenkins ALL=(root) NOPASSWD: /usr/sbin/usermod" >> /etc/sudoers
+RUN echo "jenkins ALL=(root) NOPASSWD: /usr/bin/sh" >> /etc/sudoers
 
 # edit jenkins user
 RUN mkdir /home/jenkins && chown jenkins:jenkins /home/jenkins && usermod -d /home/jenkins jenkins
@@ -52,7 +51,6 @@ RUN mkdir /home/jenkins && chown jenkins:jenkins /home/jenkins && usermod -d /ho
 # ARG DOCKER_GROUP_ID
 # RUN groupmod -g ${DOCKER_GROUP_ID} docker && usermod -aG ${DOCKER_GROUP_ID} jenkins
 
-# clean
-RUN sudo apt-get clean && rm -rf /var/lib/apt/lists/*
+COPY init.jenkins /etc/init.d/jenkins
 
 USER jenkins
