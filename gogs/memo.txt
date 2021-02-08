@@ -1,0 +1,3 @@
+ubuntu core で作成したものよりも本家のarm64v8用のDockerfileが見つかったのでこちらは利用していない
+同階層に https://github.com/gogs/gogs からクローンしたもので
+docker/Dockerfile.aarch64 をDockerfile として利用する
