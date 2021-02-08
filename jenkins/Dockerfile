@@ -1,11 +1,5 @@
 FROM multiarch/ubuntu-core:arm64-focal
 
-COPY entry.sh /tmp
-ENTRYPOINT ["/tmp/entry.sh"]
-CMD ["/sbin/init"]
-
-EXPOSE 8080
-
 # start base
 USER root
 
@@ -42,10 +36,7 @@ RUN apt-get update && apt-get install -y jenkins
 # add sudoers
 RUN echo "jenkins ALL=(root) NOPASSWD: /usr/bin/docker" >> /etc/sudoers
 RUN echo "jenkins ALL=(root) NOPASSWD: /etc/init.d/jenkins" >> /etc/sudoers
-RUN echo "jenkins ALL=(root) NOPASSWD: /usr/bin/sh" >> /etc/sudoers
-
-# edit jenkins user
-RUN mkdir /home/jenkins && chown jenkins:jenkins /home/jenkins && usermod -d /home/jenkins jenkins
+RUN echo "jenkins ALL=(root) NOPASSWD: /bin/bash" >> /etc/sudoers
 
 # add docker group
 # ARG DOCKER_GROUP_ID
@@ -53,4 +44,15 @@ RUN mkdir /home/jenkins && chown jenkins:jenkins /home/jenkins && usermod -d /ho
 
 COPY init.jenkins /etc/init.d/jenkins
 
+EXPOSE 8080
+
+WORKDIR /home/jenkins
+
+RUN echo "#!/bin/bash" > start.sh && echo 'exec "$@"' >> start.sh && chmod +x start.sh
+ENTRYPOINT ["/home/jenkins/start.sh"]
+
+CMD ["/sbin/init"]
+
 USER jenkins
+
+

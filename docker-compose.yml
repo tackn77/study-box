@@ -1,14 +1,46 @@
 version: '3'
 services:
   jenkins:
-    container_name: jenkins-rpi64
+    container_name: jenkins
+    hostname: jenkins
     build:
-      context: .
+      context: ./jenkins
       dockerfile: Dockerfile
-    restart: always
-    env_file: ./common.env
     ports:
       - "8080:8080"
     volumes:
-      - /data/jenkins:/var/lib/jenkins
+      - jenkins:/var/lib/jenkins
       - /var/run/docker.sock:/var/run/docker.sock
+
+  gogs:
+    container_name: gogs
+    hostname: gogs
+    build:
+      context: ../gogs
+      dockerfile: Dockerfile
+    ports:
+      - "10022:10022"
+      - "3000:3000"
+    volumes:
+      - data:/app/gogs
+
+  db:
+    image: postgres:10
+    container_name: "db"
+    hostname: postgres
+    environment:
+      - POSTGRES_USER
+      - POSTGRES_PASSWORD
+      - POSTGRES_DB
+    ports:
+      - "5432"
+    volumes:
+      - database:/var/lib/postgresql/data
+      - ./initdb:/docker-entrypoint-initdb.d
+
+
+
+volumes:
+  jenkins:
+  data:
+  database:
