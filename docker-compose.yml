@@ -7,10 +7,14 @@ services:
       context: ./jenkins
       dockerfile: Dockerfile
     ports:
-      - "8080:8080"
+      - "8080"
+      - "8443"
+      - "50000"
+    networks:
+      - front-tier
     volumes:
-      - jenkins:/var/lib/jenkins
-      - /var/run/docker.sock:/var/run/docker.sock
+      - jenkins:/var/jenkins_home
+      - /run/docker.sock
 
   gogs:
     container_name: gogs
@@ -42,5 +46,4 @@ services:
 
 volumes:
   jenkins:
-  data:
-  database:
+    external: true
