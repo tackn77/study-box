@@ -56,3 +56,11 @@ volumes:
     external: true
   db-data:
     external: true
+
+networks:
+  front-tier: {}
+  back-tier:
+    ipam:
+      driver: default
+      config:
+        - subnet: 172.20.100.0/24
