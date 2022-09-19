@@ -38,19 +38,21 @@ services:
     container_name: "db"
     hostname: postgres
     environment:
-      - POSTGRES_USER
-      - POSTGRES_PASSWORD
-      - POSTGRES_DB
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=pg_password
+      - POSTGRES_DB=pg_db
     ports:
       - "5432"
+    networks:
+      - back-tier
     volumes:
-      - database:/var/lib/postgresql/data
+      - db-data:/var/lib/postgresql/data
       - ./initdb:/docker-entrypoint-initdb.d
-
-
 
 volumes:
   jenkins:
     external: true
   gogs:
+    external: true
+  db-data:
     external: true
