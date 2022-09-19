@@ -20,13 +20,18 @@ services:
     container_name: gogs
     hostname: gogs
     build:
-      context: ../gogs
+      context: ./gogs
       dockerfile: Dockerfile
     ports:
-      - "10022:10022"
-      - "3000:3000"
+      - "10022"
+      - "3000"
+    networks:
+      - front-tier
+      - back-tier
     volumes:
-      - data:/app/gogs
+      - gogs:/data
+    depends_on:
+      - db
 
   db:
     image: postgres:10
@@ -46,4 +51,6 @@ services:
 
 volumes:
   jenkins:
+    external: true
+  gogs:
     external: true
