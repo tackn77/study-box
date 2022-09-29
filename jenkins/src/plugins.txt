@@ -1,0 +1,2 @@
+blueocean:1.0.0-b24 
+blueocean-i18n:1.0.0-b24 

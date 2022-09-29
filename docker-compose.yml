@@ -6,23 +6,38 @@ services:
     build:
       context: ./jenkins
       dockerfile: Dockerfile
+      args:
+        - JENKINS_VERSION
+    image: tackn/jenkins
     ports:
       - "8080:8080"
+      - "8443"
+      - "50000"
+    networks:
+      - front-tier
     volumes:
-      - jenkins:/var/lib/jenkins
-      - /var/run/docker.sock:/var/run/docker.sock
+      - jenkins:/var/jenkins_home
+      - /run/docker.sock
 
   gogs:
     container_name: gogs
     hostname: gogs
     build:
-      context: ../gogs
+      context: ./gogs
       dockerfile: Dockerfile
+      args:
+        - GOGS_VERSION
+    image: tackn/gogs
     ports:
       - "10022:10022"
       - "3000:3000"
+    networks:
+      - front-tier
+      - back-tier
     volumes:
-      - data:/app/gogs
+      - gogs:/data
+    depends_on:
+      - db
 
   db:
     image: postgres:10
@@ -34,13 +49,20 @@ services:
       - POSTGRES_DB
     ports:
       - "5432"
+    networks:
+      - back-tier
     volumes:
-      - database:/var/lib/postgresql/data
+      - db-data:/var/lib/postgresql/data
       - ./initdb:/docker-entrypoint-initdb.d
-
-
 
 volumes:
   jenkins:
-  data:
-  database:
+    external: true
+  gogs:
+    external: true
+  db-data:
+    external: true
+
+networks:
+  front-tier: {}
+  back-tier: {}
