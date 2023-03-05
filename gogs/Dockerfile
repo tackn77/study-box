@@ -1,55 +1,63 @@
-FROM multiarch/ubuntu-core:arm64-focal
+FROM arm64v8/golang:alpine as build
 
-USER root
+ARG GOGS_VERSION=main
 
-# update
-RUN apt-get update && apt-get upgrade -y
+# https://github.com/mattn/go-sqlite3/issues/803
+ENV CGO_CFLAGS="-g -O2 -Wno-return-local-addr"
 
-# install sudo
-RUN apt-get install -y sudo
+RUN apk add --no-cache --repository http://dl-cdn.alpinelinux.org/alpine/edge/main && \
+    apk add --no-cache --repository  http://dl-cdn.alpinelinux.org/alpine/edge/community && \
+    apk update && apk upgrade && \
+    echo "*** Set Time Zone ***" && \
+    apk --no-cache add tzdata && \
+    cp /usr/share/zoneinfo/Asia/Tokyo /etc/localtime && \
+    apk del tzdata && \
+    echo "*** Preparing for Build ***" && \
+    apk add --no-cache git gcc libc-dev
 
-# set TimeZone
-ENV DEBIAN_FRONTEND=noninteractive
-ENV TZ=Asia/Tokyo
-RUN sudo apt-get install -y tzdata
+RUN echo "*** clone ***" && \
+    git clone --depth 1 --branch $GOGS_VERSION https://github.com/gogs/gogs.git gogs && \
+    echo "*** Build ***" && \
+    cd gogs && /usr/local/go/bin/go build -tags "cert" -ldflags="-s -w" -trimpath -o /usr/local/bin/gogs
 
-# install git
-RUN sudo apt-get install -y git
+RUN apk add --no-cache openssh-keygen bash
 
-# add user
-RUN sudo adduser --disabled-login --home /app/gogs --gecos 'Gogs' git
+FROM arm64v8/alpine:edge as gogs
 
-# Go言語 1.15.8 のインストール (1.14 以降が必要のためパッケージではNG)
-# RUN sudo add-apt-repository ppa:longsleep/golang-backports 
-# RUN sudo apt-get update
-# RUN sudo apt-get install golang-go
+ARG GOGS_HOME=/app/gogs
+ARG DATA_HOME=/data
+ARG USER=git
+ARG UID=1000
+ARG GROUP=${USER}
+ARG GID=1000
 
-# get src
-ADD https://golang.org/dl/go1.15.8.linux-arm64.tar.gz /usr/local/src/go1.15.8.linux-arm64.tar.gz
-RUN sudo tar -C /usr/local -xzf /usr/local/src/go1.15.8.linux-arm64.tar.gz
+COPY --from=build /etc/localtime /etc/localtime
+COPY --from=build /usr/local/bin/gogs ${GOGS_HOME}/gogs
 
-# setup build
-WORKDIR /usr/local/src
-RUN sudo apt-get install build-essential -y
-
-# install Gogs
-RUN git clone --depth 1 https://github.com/gogs/gogs.git gogs
-RUN cd gogs && /usr/local/go/bin/go build -tags "cert" -o /app/gogs/gogs
-
-RUN mkdir -p /data/gogs/data && chmod 777 /data/gogs/data
-RUN ln -s /data/gogs/data /app/gogs/data
-RUN mkdir -p /data/gogs/log && chmod 777 /data/gogs/log
-RUN ln -s /data/gogs/log /app/gogs/log
-RUN chown -R git:git /app/gogs
+RUN apk add --no-cache git openssh bash && \
+    echo "*** Create User ***" && \
+    addgroup -S ${GROUP} --gid ${GID} && \
+    adduser -S ${USER} --home ${GOGS_HOME} --shell /sbin/nologin --uid ${UID} -G ${GROUP} && \
+    chown -R ${USER}:${GROUP} /app/gogs && \
+    echo "*** Preparing for Data Folder ***" && \
+    mkdir -p ${DATA_HOME}/repositories && ln -s ${DATA_HOME}/repositories ${GOGS_HOME}/gogs-repositories && \
+    mkdir -p ${GOGS_HOME}/custom && chown -R ${USER}:${GROUP} ${GOGS_HOME}/custom && \
+    mkdir -p ${DATA_HOME}/conf && ln -s ${DATA_HOME}/conf ${GOGS_HOME}/custom/conf && \
+    mkdir -p ${DATA_HOME}/data && ln -s ${DATA_HOME}/data ${GOGS_HOME}/data  && \
+    mkdir -p ${DATA_HOME}/log  && ln -s ${DATA_HOME}/log  ${GOGS_HOME}/log  && \
+    chown -R ${USER}:${GROUP} ${DATA_HOME} && \
+    echo "*** Preparing for Start ***" && \
+    echo '#!/bin/ash' > /usr/bin/start.sh && \
+    echo 'exec "$@"' >> /usr/bin/start.sh && \
+    chmod 777 /usr/bin/start.sh
 
 VOLUME ["/data"]
 EXPOSE 22 3000
 
-WORKDIR /app/gogs
+WORKDIR ${GOGS_HOME}
 
-RUN echo "#!/bin/bash" > data/start.sh && echo 'exec "$@"' >> data/start.sh && chmod +x data/start.sh
-ENTRYPOINT ["/app/gogs/datastart.sh"]
+ENTRYPOINT ["/usr/bin/start.sh"]
 
 CMD ["/app/gogs/gogs", "web"]
 
-USER git
+USER ${USER}

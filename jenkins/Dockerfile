@@ -1,58 +1,75 @@
-FROM multiarch/ubuntu-core:arm64-focal
+FROM debian:stable-slim
 
-# start base
-USER root
+RUN    echo "*** upgrade ***" \
+    && apt update && apt upgrade -y \
 
-RUN apt-get update && apt-get upgrade -y
-RUN apt-get install -y sudo \
-     apt-transport-https \
-     ca-certificates \
-     curl \
-     gnupg2 \
-     software-properties-common
+    && echo "*** Create SSH key ***" \
+    && apt install -y openssh-client \
+    && ssh-keygen -q -t ed25519 -N '' -f ~/id_ed25519 \
 
-ENV DEBIAN_FRONTEND=noninteractive
-ENV TZ=Asia/Tokyo
-RUN sudo apt-get install -y tzdata
+    && echo "*** Install ***" \
+    && apt install -y sudo git zip wget curl gnupg2 lsb-release jq ttf-bitstream-vera \
 
-# install git java
-RUN sudo apt-get install -y \
-        git \
-        openjdk-11-jdk
+    && echo "*** docker ***" \
+    && curl -fsSL https://download.docker.com/linux/debian/gpg | sudo apt-key add - \
+    && echo "deb [arch=arm64] https://download.docker.com/linux/debian $(lsb_release -sc) stable" > /etc/apt/sources.list.d/docker-ce.list \
+    && apt-get update && apt-get install -y docker-ce docker-ce-cli containerd.io \
 
-# install docker
-RUN curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo apt-key add -
-RUN echo "deb [arch=arm64] https://download.docker.com/linux/ubuntu $(lsb_release -sc) stable" > /etc/apt/sources.list.d/docker-ce.list
-RUN apt-get update && apt-get install -y docker-ce docker-ce-cli containerd.io
+    && echo "*** docker-compose ***" \
+    && apt install -y python3-pip python3-distutils-extra python3-cffi coreutils python3-distutils \
+    && python3 -m pip install --upgrade pip \
+    && python3 -m pip install docker-compose \
+    && apt remove -y python3-pip python3-distutils-extra python3-cffi \
+ 
+    && echo "*** Set Time Zone ***" \
+    && apt install -y tzdata \
+    && cp /usr/share/zoneinfo/Asia/Tokyo /etc/localtime \
+    && apt remove -y tzdata \
 
-RUN curl -L https://github.com/docker/compose/releases/download/1.16.1/docker-compose-`uname -s`-`uname -m` -o /usr/local/bin/docker-compose
-RUN chmod +x /usr/local/bin/docker-compose
+    && echo "*** Java ***" \
+    && apt update && apt install -y default-jdk
 
-# install jenkins
-RUN curl -sSL https://pkg.jenkins.io/debian/jenkins.io.key | sudo apt-key add -
-RUN echo 'deb https://pkg.jenkins.io/debian binary/'  >> /etc/apt/sources.list
-RUN apt-get update && apt-get install -y jenkins
+# Jenkin
+ENV JENKINS_HOME=/var/jenkins_home
+ENV JENKINS_MASTER_AGENT_PORT=8080
+ENV JENKINS_SLAVE_AGENT_PORT=50000
 
-# add sudoers
-RUN echo "jenkins ALL=(root) NOPASSWD: /usr/bin/docker" >> /etc/sudoers
-RUN echo "jenkins ALL=(root) NOPASSWD: /etc/init.d/jenkins" >> /etc/sudoers
-RUN echo "jenkins ALL=(root) NOPASSWD: /bin/bash" >> /etc/sudoers
+ENV USER=jenkins
+ENV UID=1000
+ENV GROUP=${USER}
+ENV GID=1000
+ENV CONFIG_FILE=supervisord.conf
 
-# add docker group
-# ARG DOCKER_GROUP_ID
-# RUN groupmod -g ${DOCKER_GROUP_ID} docker && usermod -aG ${DOCKER_GROUP_ID} jenkins
+RUN    echo "*** Create User jenkins ***" \
+    && groupadd --gid ${GID} ${GROUP} \
+    && useradd -d ${JENKINS_HOME} -s /sbin/nologin -u ${UID} -g ${GROUP} ${USER}  \
+    && mkdir -p ${JENKINS_HOME}/log \
 
-COPY init.jenkins /etc/init.d/jenkins
+    && echo "*** Install jenkins ***" \
+    && curl -sSL https://pkg.jenkins.io/debian/jenkins.io.key | sudo apt-key add - \
+    && echo 'deb https://pkg.jenkins.io/debian binary/'  >> /etc/apt/sources.list \
+    && apt update && apt install -y jenkins supervisor iptables \
 
-EXPOSE 8080
+    && echo "*** add sudoers ***" \
+    && echo "jenkins ALL=(root) NOPASSWD: /usr/bin/docker" >> /etc/sudoers \
+    && echo "jenkins ALL=(root) NOPASSWD: /etc/init.d/jenkins" >> /etc/sudoers \
+    && echo "jenkins ALL=(root) NOPASSWD: /bin/bash" >> /etc/sudoers \
 
-WORKDIR /home/jenkins
+    && apt autoremove -y && rm -rf /var/lib/apt/lists/*
 
-RUN echo "#!/bin/bash" > start.sh && echo 'exec "$@"' >> start.sh && chmod +x start.sh
-ENTRYPOINT ["/home/jenkins/start.sh"]
+WORKDIR ${JENKINS_HOME}
 
-CMD ["/sbin/init"]
+COPY "src" ${JENKINS_HOME}
 
-USER jenkins
+EXPOSE ${JENKINS_MASTER_AGENT_PORT} ${JENKINS_SLAVE_AGENT_PORT}
 
+RUN    echo "#!/bin/bash" > "/var/jenkins_home/start.sh" \
+    && echo 'exec "$@"' >> "/var/jenkins_home/start.sh" \
+    && chmod +x "/var/jenkins_home/start.sh" \
+    && chown -R ${USER}:${GROUP} "/var/jenkins_home"
 
+ENTRYPOINT ["/var/jenkins_home/start.sh"]
+
+CMD ["/usr/bin/supervisord" ,"-c", "/var/jenkins_home/supervisord.conf" ]
+
+USER "jenkins"
