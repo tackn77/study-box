@@ -41,9 +41,10 @@ RUN apk add --no-cache git openssh bash && \
     chown -R ${USER}:${GROUP} /app/gogs && \
     echo "*** Preparing for Data Folder ***" && \
     mkdir -p ${DATA_HOME}/repositories && ln -s ${DATA_HOME}/repositories ${GOGS_HOME}/gogs-repositories && \
-    mkdir -p ${DATA_HOME}/conf  && ln -s ${DATA_HOME}/conf ${GOGS_HOME}/custom/conf  && \
-    mkdir -p ${DATA_HOME}/data  && ln -s ${DATA_HOME}/data ${GOGS_HOME}/data  && \
-    mkdir -p ${DATA_HOME}/log   && ln -s ${DATA_HOME}/log  ${GOGS_HOME}/log  && \
+    mkdir -p ${GOGS_HOME}/custom && chown -R ${USER}:${GROUP} ${GOGS_HOME}/custom && \
+    mkdir -p ${DATA_HOME}/conf && ln -s ${DATA_HOME}/conf ${GOGS_HOME}/custom/conf && \
+    mkdir -p ${DATA_HOME}/data && ln -s ${DATA_HOME}/data ${GOGS_HOME}/data  && \
+    mkdir -p ${DATA_HOME}/log  && ln -s ${DATA_HOME}/log  ${GOGS_HOME}/log  && \
     chown -R ${USER}:${GROUP} ${DATA_HOME} && \
     echo "*** Preparing for Start ***" && \
     echo '#!/bin/ash' > /usr/bin/start.sh && \
